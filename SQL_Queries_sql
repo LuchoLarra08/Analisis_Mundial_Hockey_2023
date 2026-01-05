@@ -1,0 +1,127 @@
+PROYECTO: ANÁLISIS DEL MUNDIAL DE HOCKEY 2023
+OBJETIVO: Determinar si la ofensiva (Países Bajos) o la resiliencia (Alemania) fue clave para ganar
+
+Uso de la base de datos
+USE world_cup;
+
+1. CREACIÓN DE USUARIO PARA CONEXIÓN EXTERNA (POWER BI)
+
+1.1 Crea un nuevo usuario y una contraseña simple.
+CREATE USER 'powerbi_user'@'localhost' IDENTIFIED BY 'TuContraseñaBI2025';
+
+1.2 Concede todos los permisos a ese nuevo usuario solo para la base de datos 'world_cup'.
+GRANT ALL PRIVILEGES ON world_cup.* TO 'powerbi_user'@'localhost';
+
+ 1.3 Aplica los cambios de permisos.
+FLUSH PRIVILEGES;
+
+
+2. LIMPIEZA Y PREPARACIÓN DE DATOS (ETL)
+2.1 Estandarización de la Columna 'Resultado_Penales'
+El campo viene como NULL o con un valor de texto. Para el análisis, estandarizamos
+los valores NULL o vacíos a un texto consistente: 'No hubo penales'.
+Esto asegura que el campo 'Resultado_Penales' siempre tenga un valor para la Leyenda de Power BI.
+
+Reemplazar los valores NULL o vacíos por la cadena 'No hubo penales':
+UPDATE world_cup_resultados_fase_final
+SET Resultado_Penales = 'No hubo penales'
+WHERE Resultado_Penales IS NULL OR Resultado_Penales = '';
+
+2.2 Conversión de Tipos de Datos 
+Asegura que las columnas de Goles sean de tipo numérico (INT).
+
+Cambia la columna GF de clasificacion_grupos a entero:
+ALTER TABLE clasificacion_grupos
+MODIFY GF INT;
+
+Cambia la columna Goles de goleadores a entero:
+ALTER TABLE world_cup_goleadores
+MODIFY Goles INT;
+
+2.3 Sentencia de corrección de inconsistencias
+Si el nombre de un equipo estaba mal escrito en alguna tabla (Ej. 'Paises Bajos' sin tilde)
+se usaría la siguiente estructura:
+UPDATE clasificacion_grupos SET Equipo = 'Países Bajos' WHERE Equipo = 'Paises Bajos';
+3. ANÁLISIS DE INSIGHTS
+
+INSIGHT 1: EFICIENCIA Y PUNTOS EN FASE DE GRUPOS
+Muestra que Países Bajos (GF=22) fue el equipo más ofensivo y con más puntos (PTS=9),
+clave para el Gráfico de Dispersión (GF vs GC) y la narrativa inicial.
+SELECT 
+    Equipo,
+    PTS,
+    GF,
+    GC,
+    ROUND(GF / PJ, 2) AS Goles_Por_Partido
+FROM 
+    clasificacion_grupos
+ORDER BY 
+    PTS DESC, GF DESC;
+
+INSIGHT 2: ANÁLISIS DE RESILIENCIA Y FASE FINAL
+Muestra que Alemania ganó la mayor cantidad de partidos (4) y fue el único con 2 victorias por penales.
+Clave para el Gráfico de Resiliencia en el Dashboard.
+SELECT
+    Ganador AS Equipo,
+    COUNT(Ganador) AS Partidos_Ganados_Fase_Final,
+    SUM(CASE WHEN Resultado_Penales IS NOT NULL AND Resultado_Penales != 'No hubo penales' THEN 1 ELSE 0 END) AS Victorias_por_Penales,
+    SUM(CASE WHEN Goles_Rival = 0 THEN 1 ELSE 0 END) AS Vallas_Invictas_Parciales -- (No se usó en el Dashboard pero es un insight defensivo valioso)
+FROM
+    world_cup_resultados_fase_final
+GROUP BY
+    Ganador
+ORDER BY
+    Partidos_Ganados_Fase_Final DESC;
+
+INSIGHT 3: CÁLCULO DE LA DEPENDENCIA DEL GOLEADOR
+Muestra el porcentaje de goles del equipo marcados por jugadores del Top 10.
+Útil para demostrar que Países Bajos tenía un ataque más colectivo (menor dependencia).
+SELECT 
+    C.Equipo,
+    C.GF AS Goles_Totales_Equipo,
+    SUM(G.Goles) AS Goles_Goleador_Top10,
+    -- Calcula el porcentaje: Goles del Top 10 / Goles Totales * 100
+    ROUND((SUM(G.Goles) * 1.0 / C.GF) * 100, 2) AS Porcentaje_Dependencia
+FROM 
+    clasificacion_grupos AS C
+JOIN 
+    world_cup_goleadores AS G ON C.Equipo = G.Seleccion
+GROUP BY 
+    C.Equipo
+ORDER BY 
+    Porcentaje_Dependencia DESC;
+
+INSIGHT 4: CLASIFICACIÓN FINAL COMPLETA
+Une el rendimiento de grupos con el resultado final, para la tabla de contexto en el dashboard.
+SELECT
+    C.Equipo,
+    C.PTS AS Puntos_Grupo,
+    C.GF AS Goles_Favor_Grupo,
+    CF.Puesto_Final
+FROM
+    clasificacion_grupos AS C
+LEFT JOIN
+    (
+        -- Subconsulta para crear la Clasificación Final completa
+        SELECT 'Alemania' AS Equipo, 1 AS Puesto_Final
+        UNION ALL SELECT 'Bélgica', 2
+        UNION ALL SELECT 'Países Bajos', 3
+        UNION ALL SELECT 'Australia', 4
+        UNION ALL SELECT 'Inglaterra', 5
+        UNION ALL SELECT 'España', 6
+        UNION ALL SELECT 'Nueva Zelanda', 7
+        UNION ALL SELECT 'Corea del Sur', 8
+	UNION ALL SELECT 'Argentina', 9
+        UNION ALL SELECT 'India', 9 -- Empate en el 9° lugar
+        UNION ALL SELECT 'Gales', 11
+        UNION ALL SELECT 'Sudáfrica', 11 -- Empate en el 11° lugar
+        UNION ALL SELECT 'Francia', 13
+        UNION ALL SELECT 'Malasia', 13 -- Empate en el 13° lugar
+        UNION ALL SELECT 'Chile', 15
+        UNION ALL SELECT 'Japón', 15 -- Empate en el 15° lugar
+
+    ) AS CF
+ON
+    C.Equipo = CF.Equipo
+ORDER BY
+    CF.Puesto_Final ASC;
