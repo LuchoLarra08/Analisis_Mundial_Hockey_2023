@@ -28,8 +28,9 @@ Visualización del Dashboard
 
 A continuación, se presenta el Dashboard interactivo que resume los hallazgos clave del torneo:
 
-![Dashboard del Mundial de Hockey](./Dashboard_Mundial_Hockey.PNG)
+![Dashboard del Mundial de Hockey](./Dashboard_Mundia_Hockey.PNG)
 
 Estructura del Repositorio
  `SQL_Queries.sql`: Contiene todo el código SQL para la creación de la base de datos, la limpieza de datos y las consultas analíticas que extrajeron los insights.
+
  `Mundial_Hockey_Dashboard.pbix`: El archivo fuente de Power BI con el modelo de datos, las relaciones y todas las visualizaciones del Dashboard.
