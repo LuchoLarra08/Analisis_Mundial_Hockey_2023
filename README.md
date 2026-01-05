@@ -31,6 +31,7 @@ A continuación, se presenta el Dashboard interactivo que resume los hallazgos c
 ![Dashboard del Mundial de Hockey](./Dashboard_Mundia_Hockey.PNG)
 
 Estructura del Repositorio
- `SQL_Queries.sql`: Contiene todo el código SQL para la creación de la base de datos, la limpieza de datos y las consultas analíticas que extrajeron los insights.
 
- `Mundial_Hockey_Dashboard.pbix`: El archivo fuente de Power BI con el modelo de datos, las relaciones y todas las visualizaciones del Dashboard.
+* **`SQL_Queries.sql`**: Contiene todo el código SQL para la creación de la base de datos, la limpieza de datos y las consultas analíticas que extrajeron los insights.
+* **`Mundial_Hockey_Dashboard.pbix`**: El archivo fuente de Power BI con el modelo de datos, las relaciones y todas las visualizaciones del Dashboard.
+* **`Dashboard_Mundia_Hockey.PNG`**: Imagen que permite visualizar los hallazgos directamente en el repositorio.
